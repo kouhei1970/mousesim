@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include <stdlib.h>
+#include "vector.h"
 
 #define UNIT_LENGTH (180.0)
 #define MAZE_SIZE (16)
@@ -26,16 +27,11 @@
 //#define ANGLE1 (30.0*M_PI/180)
 #define STACK_SIZE (9)
 #define NUM_MAX (100)
-#define QUEUE_SIZE (30)
+
 
 #define SLA_OUTPUT
 
-enum status
-{
-  EMPTY,
-  AVAILABLE,
-  FULL
-};
+
 
 enum sensor_num
 {
@@ -44,16 +40,6 @@ enum sensor_num
   RIGHT_FRONT,
   RIGHT_SIDE
 };
-
-#if 0
-typedef struct
-{
-  /* data */
-  double x;
-  double y;
-} point2d_t;
-#endif
-
 
 typedef struct
 {
@@ -102,14 +88,7 @@ typedef struct
   u_int16_t thisNum;
 } Stack_t;
 
-typedef struct
-{
-  u_int8_t dataX[QUEUE_SIZE];
-  u_int8_t dataY[QUEUE_SIZE];
-  int16_t head;
-  int16_t tail;
-  int8_t flag;
-} Queue_t;
+
 
 
 typedef struct
@@ -156,17 +135,8 @@ int8_t initStack(Stack_t *pStack);
 int8_t deleteStack(Stack_t *pStack);
 void printStack(Stack_t *pStack);
 void copy_mapdata(u_int8_t _map[16][16]);
-void printQueue(Queue_t *pQueue);
-void initQueue(Queue_t *pQueue);
-void enqueue(Queue_t *pQueue, u_int8_t x, u_int8_t y);
-void dequeue(Queue_t *pQueue);
 point2d_t find_cross_point(double a1, double b1, double a2, double b2);
 void setup_micromouse(robot_t *robot);
-point2d_t rotate2d(point2d_t pt, double angle);
-point2d_t move2d(point2d_t pt, point2d_t move);
-double dot_product2d(point2d_t vec1, point2d_t vec2);
-point2d_t vec_add2d(point2d_t vec1, point2d_t vec2);
-point2d_t vec_sub2d(point2d_t vec1, point2d_t vec2);
 sensor_detect_point_t calc_sensor_ray(robot_t *robot, u_int8_t _map[16][16]);
 
 
@@ -231,45 +201,6 @@ cairo_t *C_robot;
 cairo_t *C_maze;
 robot_t Micromouse;
 
-//vec1+vec2
-point2d_t vec_add2d(point2d_t vec1, point2d_t vec2)
-{
-  point2d_t vec;
-  vec.x = vec1.x + vec2.x;
-  vec.y = vec1.y + vec2.y;
-  return vec;
-}
-
-//vec1-vec2
-point2d_t vec_sub2d(point2d_t vec1, point2d_t vec2)
-{
-  point2d_t vec;
-  vec.x = vec1.x + vec2.x;
-  vec.y = vec1.y + vec2.y;
-  return vec;
-}
-
-
-point2d_t rotate2d(point2d_t pt, double angle)
-{
-  point2d_t p;
-  p.x = cos(angle)*pt.x - sin(angle)*pt.y;
-  p.y = sin(angle)*pt.x + cos(angle)*pt.y;
-  return p;
-}
-
-point2d_t move2d(point2d_t pt, point2d_t move)
-{
-  point2d_t p;
-  p.x = pt.x + move.x;
-  p.y = pt.y + move.y;
-  return p;
-}
-
-double dot_product2d(point2d_t vec1, point2d_t vec2)
-{
-  return vec1.x * vec2.x + vec1.y * vec2.y;
-}
 
 
 void setup_robot(robot_t *robot)
@@ -512,105 +443,6 @@ sensor_detect_point_t calc_sensor_ray(robot_t *robot, u_int8_t _map[16][16])
   return detect_point;
 }
 
-//キューの中身をprint出力
-void printQueue(Queue_t *pQueue)
-{
-  int i;
-  for (i = 0; i <= QUEUE_SIZE - 1; i++)
-  {
-    printf("%d %d ", pQueue->dataX[i], pQueue->dataY[i]);
-  }
-  printf("\n");
-}
-
-//キューの初期化
-void initQueue(Queue_t *pQueue)
-{
-  int i;
-  //キューの中身を0埋め
-  for (i = 0; i <= QUEUE_SIZE - 1; i++)
-  {
-    pQueue->dataX[i] = 0;
-    pQueue->dataY[i] = 0;
-  }
-  //初期化
-  pQueue->head = 0;
-  pQueue->tail = 0;
-  pQueue->flag = EMPTY;
-  printQueue(pQueue);
-}
-
-// enqueue関数
-void enqueue(Queue_t *pQueue, u_int8_t x, u_int8_t y)
-{
-  printf("enQ(%d %d)\n", x, y);
-  //キューがFullの処理
-  if (pQueue->flag == FULL)
-  {
-    printf("Full\n");
-    return;
-  }
-  //キューがFullでないので、enqueue操作
-  pQueue->dataX[pQueue->tail] = x;
-  pQueue->dataY[pQueue->tail] = y;
-
-  //リングバッファのため、tailが配列の終端だったら0にする
-  if (pQueue->tail == QUEUE_SIZE - 1)
-  {
-    pQueue->tail = 0;
-    //終端でなければ、tailをインクリメント
-  }
-  else
-  {
-    pQueue->tail++;
-  }
-  //フラグの更新
-  if (pQueue->tail == pQueue->head)
-  {
-    pQueue->flag = FULL;
-  }
-  else
-  {
-    pQueue->flag = AVAILABLE;
-  }
-  printQueue(pQueue);
-}
-
-// dequeue関数
-void dequeue(Queue_t *pQueue)
-{
-  printf("deQ\n");
-  //キューがEmptyの処理
-  if (pQueue->flag == EMPTY)
-  {
-    printf("Empty\n");
-    return;
-  }
-  //キューがEmptyでなければ、dequeue操作
-  pQueue->dataX[pQueue->head] = 0;
-  pQueue->dataY[pQueue->head] = 0;
-
-  //リングバッファのため、headが配列の終端だったら0にする
-  if (pQueue->head == QUEUE_SIZE - 1)
-  {
-    pQueue->head = 0;
-    //終端でなければ、headをインクリメント
-  }
-  else
-  {
-    pQueue->head++;
-  }
-  //フラグの更新
-  if (pQueue->tail == pQueue->head)
-  {
-    pQueue->flag = EMPTY;
-  }
-  else
-  {
-    pQueue->flag = AVAILABLE;
-  }
-  printQueue(pQueue);
-}
 
 int8_t initStack(Stack_t *pStack)
 {
