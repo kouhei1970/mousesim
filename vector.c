@@ -1,4 +1,5 @@
 #include "vector.h"
+#include "math.h"
 
 //vec1+vec2
 point2d_t vec_add2d(point2d_t vec1, point2d_t vec2)

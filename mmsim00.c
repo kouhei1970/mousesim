@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <cairo/cairo.h>
 #include <stdarg.h>
 #include <math.h>
 #include <stdlib.h>
 #include "vector.h"
+#include "queue.h"
 
 #define UNIT_LENGTH (180.0)
 #define MAZE_SIZE (16)
@@ -82,10 +84,10 @@ typedef struct
 
 typedef struct
 {
-  u_int8_t *pX;
-  u_int8_t *pY;
+  uint8_t *pX;
+  uint8_t *pY;
   int16_t tail;
-  u_int16_t thisNum;
+  uint16_t thisNum;
 } Stack_t;
 
 
@@ -127,17 +129,17 @@ void draw_traj(int cnt, data_t *data);
 void erase_traj(int cnt, data_t *data);
 void erase_mouse2(double x, double y, double angle);
 void slalom_opt(void);
-void make_contourmap(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t gx, u_int8_t gy);
-void make_contourmap2(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t gx, u_int8_t gy);
+void make_contourmap(uint8_t _map[16][16], uint8_t sx, uint8_t sy, uint8_t gx, uint8_t gy);
+void make_contourmap2(uint8_t _map[16][16], uint8_t sx, uint8_t sy, uint8_t gx, uint8_t gy);
 void run(void);
 void output_cmap(void);
 int8_t initStack(Stack_t *pStack);
 int8_t deleteStack(Stack_t *pStack);
 void printStack(Stack_t *pStack);
-void copy_mapdata(u_int8_t _map[16][16]);
+void copy_mapdata(uint8_t _map[16][16]);
 point2d_t find_cross_point(double a1, double b1, double a2, double b2);
 void setup_micromouse(robot_t *robot);
-sensor_detect_point_t calc_sensor_ray(robot_t *robot, u_int8_t _map[16][16]);
+sensor_detect_point_t calc_sensor_ray(robot_t *robot, uint8_t _map[16][16]);
 
 
 // 2019+alpha Clasic mouse expart final maze
@@ -178,10 +180,10 @@ char maze[33][66] = {
     // 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
 };
 
-u_int8_t mapdata[16][16];
-u_int8_t map[16][16];
-u_int16_t cmap[16][16]; //等高線マップ
-u_int8_t smap[16][16];  //既探索マップ
+uint8_t mapdata[16][16];
+uint8_t map[16][16];
+uint16_t cmap[16][16]; //等高線マップ
+uint8_t smap[16][16];  //既探索マップ
 char mouse_x = 0;
 char mouse_y = 0;
 char mouse_dir = 0;
@@ -229,6 +231,7 @@ void setup_robot(robot_t *robot)
 
 void hoge(robot_t *robot, uint8_t sensor_id)
 {
+  #if 0
   point2d_t gpos;//センサ位置
 
   //left_front_sensor ray equation
@@ -265,10 +268,11 @@ void hoge(robot_t *robot, uint8_t sensor_id)
     else if (east_dot  > 0.0 && y_s <=  east.y &&  east.y <= y_n) detect_point.sen[sensor_id]=east;
     else if (south_dot > 0.0 && x_w <= south.x && south.x <= x_e) detect_point.sen[sensor_id]=south;
     else if (west_dot  > 0.0 && y_s <=  west.x &&  west.x <= y_n) detect_point.sen[sensor_id]=west;
+    #endif
 
 }
 
-sensor_detect_point_t calc_sensor_ray(robot_t *robot, u_int8_t _map[16][16])
+sensor_detect_point_t calc_sensor_ray(robot_t *robot, uint8_t _map[16][16])
 {
   //次にやること
   //mapを見て光線のあたった位置に反映させる
@@ -446,10 +450,10 @@ sensor_detect_point_t calc_sensor_ray(robot_t *robot, u_int8_t _map[16][16])
 
 int8_t initStack(Stack_t *pStack)
 {
-  u_int16_t i;
+  uint16_t i;
 
-  pStack->pX = (u_int8_t *)malloc(sizeof(u_int8_t) * STACK_SIZE);
-  pStack->pY = (u_int8_t *)malloc(sizeof(u_int8_t) * STACK_SIZE);
+  pStack->pX = (uint8_t *)malloc(sizeof(uint8_t) * STACK_SIZE);
+  pStack->pY = (uint8_t *)malloc(sizeof(uint8_t) * STACK_SIZE);
 
   if (pStack->pX == NULL || pStack->pY == NULL)
   {
@@ -491,10 +495,10 @@ void printStack(Stack_t *pStack)
 }
 
 // push関数
-int push(Stack_t *pStack, u_int8_t valueX, u_int8_t valueY)
+int push(Stack_t *pStack, uint8_t valueX, uint8_t valueY)
 {
-  u_int8_t *pTmpX;
-  u_int8_t *pTmpY;
+  uint8_t *pTmpX;
+  uint8_t *pTmpY;
   int i;
   //スタックがFullの処理
   if (pStack->tail >= STACK_SIZE * NUM_MAX - 1)
@@ -509,8 +513,8 @@ int push(Stack_t *pStack, u_int8_t valueX, u_int8_t valueY)
   {
     printf("Upsize stack\n");
     pStack->thisNum++;
-    pTmpX = (u_int8_t *)realloc(pStack->pX, sizeof(u_int8_t) * STACK_SIZE * pStack->thisNum);
-    pTmpY = (u_int8_t *)realloc(pStack->pY, sizeof(u_int8_t) * STACK_SIZE * pStack->thisNum);
+    pTmpX = (uint8_t *)realloc(pStack->pX, sizeof(uint8_t) * STACK_SIZE * pStack->thisNum);
+    pTmpY = (uint8_t *)realloc(pStack->pY, sizeof(uint8_t) * STACK_SIZE * pStack->thisNum);
     if (pTmpX == NULL || pTmpY == NULL)
     {
       printf("realloc error\n");
@@ -541,8 +545,8 @@ int push(Stack_t *pStack, u_int8_t valueX, u_int8_t valueY)
 // pop関数
 int8_t pop(Stack_t *pStack)
 {
-  u_int8_t *pTmpX;
-  u_int8_t *pTmpY;
+  uint8_t *pTmpX;
+  uint8_t *pTmpY;
 
   //スタックがEmptyの処理
   if (pStack->tail <= -1)
@@ -556,8 +560,8 @@ int8_t pop(Stack_t *pStack)
   {
     printf("Downsize stack\n");
     pStack->thisNum--;
-    pTmpX = (u_int8_t *)realloc(pStack->pX, sizeof(u_int8_t) * STACK_SIZE * pStack->thisNum);
-    pTmpY = (u_int8_t *)realloc(pStack->pY, sizeof(u_int8_t) * STACK_SIZE * pStack->thisNum);
+    pTmpX = (uint8_t *)realloc(pStack->pX, sizeof(uint8_t) * STACK_SIZE * pStack->thisNum);
+    pTmpY = (uint8_t *)realloc(pStack->pY, sizeof(uint8_t) * STACK_SIZE * pStack->thisNum);
     if (pTmpX == NULL || pTmpY == NULL)
     {
       printf("realloc error\n");
@@ -579,11 +583,11 @@ int8_t pop(Stack_t *pStack)
   return 0;
 }
 
-void copy_mapdata(u_int8_t _map[16][16])
+void copy_mapdata(uint8_t _map[16][16])
 {
-  for (u_int8_t y = 0; y < 16; y++)
+  for (uint8_t y = 0; y < 16; y++)
   {
-    for (u_int8_t x = 0; x < 16; x++)
+    for (uint8_t x = 0; x < 16; x++)
     {
       map[x][y] = _map[x][y];
     }
@@ -592,22 +596,22 @@ void copy_mapdata(u_int8_t _map[16][16])
 
 void reset_contourmap(void)
 {
-  for (u_int8_t y = 0; y < 16; y++)
+  for (uint8_t y = 0; y < 16; y++)
   {
-    for (u_int8_t x = 0; x < 16; x++)
+    for (uint8_t x = 0; x < 16; x++)
     {
       cmap[x][y] = 0xffff;
     }
   }
 }
 
-void make_contourmap(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t gx, u_int8_t gy)
+void make_contourmap(uint8_t _map[16][16], uint8_t sx, uint8_t sy, uint8_t gx, uint8_t gy)
 {
 
   // output_cmap();
 
-  u_int16_t tmp_cnt = 0;
-  u_int16_t tmp_max = 0;
+  uint16_t tmp_cnt = 0;
+  uint16_t tmp_max = 0;
   unsigned short step = 0;
   cmap[gx][gy] = step;
 
@@ -646,7 +650,7 @@ void make_contourmap(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t g
   printf("%d\n", tmp_max);
 }
 
-void make_contourmap2(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t gx, u_int8_t gy)
+void make_contourmap2(uint8_t _map[16][16], uint8_t sx, uint8_t sy, uint8_t gx, uint8_t gy)
 {
   Queue_t cell;
 
@@ -654,9 +658,9 @@ void make_contourmap2(u_int8_t _map[16][16], u_int8_t sx, u_int8_t sy, u_int8_t 
 
   // output_cmap();
 
-  u_int16_t tmp_cnt = 0;
-  u_int16_t tmp_max = 0;
-  u_int8_t x, y;
+  uint16_t tmp_cnt = 0;
+  uint16_t tmp_max = 0;
+  uint8_t x, y;
   unsigned short step = 0;
 
   cmap[gx][gy] = step;
@@ -2643,11 +2647,11 @@ void mode0(void)
 //最短
 void mode1(void)
 {
-  u_int8_t current_step;
-  u_int8_t north_step;
-  u_int8_t east_step;
-  u_int8_t south_step;
-  u_int8_t west_step;
+  uint8_t current_step;
+  uint8_t north_step;
+  uint8_t east_step;
+  uint8_t south_step;
+  uint8_t west_step;
   int8_t com;
 
   mouse_x = 0;
@@ -2748,11 +2752,11 @@ void mode1(void)
 //足立法
 void mode2(void)
 {
-  u_int8_t current_step;
-  u_int8_t north_step;
-  u_int8_t east_step;
-  u_int8_t south_step;
-  u_int8_t west_step;
+  uint8_t current_step;
+  uint8_t north_step;
+  uint8_t east_step;
+  uint8_t south_step;
+  uint8_t west_step;
   int8_t com;
 
   mouse_x = 0;

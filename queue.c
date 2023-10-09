@@ -29,7 +29,7 @@ void initQueue(Queue_t *pQueue)
 }
 
 // enqueue関数
-void enqueue(Queue_t *pQueue, u_int8_t x, u_int8_t y)
+void enqueue(Queue_t *pQueue, uint8_t x, uint8_t y)
 {
   printf("enQ(%d %d)\n", x, y);
   //キューがFullの処理
