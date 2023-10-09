@@ -2946,12 +2946,12 @@ point2d_t find_cross_point(double a1, double b1, double a2, double b2)
 
 int main(int argc, char **argv)
 {
-  /*
+  
   reset_map();
   make_mapdata();
   // make_contourmap(mapdata);
   run();
-  */
+  /* 
   double a1=tan(90*M_PI/180);
   double b1=a1*(-100.0);
   double a2=tan(45*M_PI/180);
@@ -2960,7 +2960,7 @@ int main(int argc, char **argv)
 
   pt=find_cross_point(a1, b1, a2, b2);
   printf("%f %f　%f\n", pt.x, pt.y, a1);
-
+  */
 
 
 
